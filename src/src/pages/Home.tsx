@@ -9,7 +9,9 @@ import {
   Button,
   Paper,
   Alert,
+  CircularProgress,
 } from "@mui/material";
+import { debounce } from "lodash";
 
 export default function Home() {
   const [username, setUsername] = useState("");
@@ -19,14 +21,27 @@ export default function Home() {
   const [result, setResult] = useState(""); // Stores ++-- feedback
   const [isWinner, setIsWinner] = useState(false);
   const [error, setError] = useState(""); // Validation error state
+  const [loading, setLoading] = useState(false);
 
   const handleStartGame = async () => {
-    if (!username.trim()) return alert("Enter your name!");
-    const response = await startNewGame(username.trim());
-    setGameId(response.data.gameId);
-    setFeedback("Game started! Make a guess.");
-    setResult("");
-    setIsWinner(false);
+    if (!username.trim()) {
+      setError("Enter your name!");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await startNewGame(username.trim());
+      setGameId(response.data.gameId);
+      setFeedback("Game started! Make a guess.");
+      setResult("");
+      setIsWinner(false);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error) {
+      setError("Failed to start the game.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleGuess = async () => {
@@ -36,15 +51,27 @@ export default function Home() {
       return;
     }
 
-    const response = await submitGuess(gameId, guess);
-    setFeedback(response.data.message);
-    setResult(response.data.result);
-    setError(""); // Clear error on valid input
+    setLoading(true);
+    try {
+      const response = await submitGuess(gameId, guess);
+      setFeedback(response.data.message);
+      setResult(response.data.result);
+      setError(""); // Clear error on valid input
 
-    if (response.data.isWinner) {
-      setIsWinner(true);
+      if (response.data.isWinner) {
+        setIsWinner(true);
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error) {
+      setError("Error submitting guess.");
+    } finally {
+      setLoading(false);
     }
   };
+
+  const handleUsernameChange = debounce((value: string) => {
+    setUsername(value);
+  }, 500);
 
   return (
     <Box
@@ -77,8 +104,8 @@ export default function Home() {
                 fullWidth
                 variant="outlined"
                 label="Enter your name"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                defaultValue={username}
+                onChange={(e) => handleUsernameChange(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleStartGame()}
                 sx={{
                   mb: 2,
@@ -91,14 +118,20 @@ export default function Home() {
                 }}
                 InputLabelProps={{ style: { color: "white" } }}
               />
+              {error && <Alert severity="error">{error}</Alert>}
               <Button
                 fullWidth
                 variant="contained"
                 color="primary"
                 onClick={handleStartGame}
+                disabled={loading}
                 sx={{ mt: 2 }}
               >
-                Start Game
+                {loading ? (
+                  <CircularProgress size={24} sx={{ color: "#ffeb3b" }} />
+                ) : (
+                  "Start Game"
+                )}
               </Button>
             </Box>
           ) : isWinner ? (
@@ -149,18 +182,19 @@ export default function Home() {
                 }}
                 InputLabelProps={{ style: { color: "white" } }}
               />
-              {error && (
-                <Alert severity="error" sx={{ mb: 2 }}>
-                  {error}
-                </Alert>
-              )}
+              {error && <Alert severity="error">{error}</Alert>}
               <Button
                 fullWidth
                 variant="contained"
                 color="secondary"
                 onClick={handleGuess}
+                disabled={loading}
               >
-                Submit Guess
+                {loading ? (
+                  <CircularProgress size={24} sx={{ color: "#ffeb3b" }} />
+                ) : (
+                  "Submit Guess"
+                )}
               </Button>
             </Box>
           )}
