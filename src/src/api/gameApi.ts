@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL = "http://localhost:5000/api"; // Ensure this matches the backend
+const API_BASE_URL = "https://mesbe-zsl8.onrender.com/api"; // Ensure this matches the backend
 
 // Start a new game (generate a random number)
 export const startNewGame = async (username: string) => {
